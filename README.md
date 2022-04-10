@@ -17,9 +17,12 @@
 |lista zalet|div.review-feature__title--positives ~ div.review-feature__item <br>div.review-feature__col:has( > div.review-feature__title--positives) > div.review-feature__item|pros|list\(str\)|
 |lista wad|div.review-feature__title--negatives ~ div.review-feature__item <br>div.review-feature__col:has( > div.review-feature__title--negatives) > div.review-feature__item|cons|list\(str\)|
 
-## Etapy prac nad projektem
+## Etapy prac nad projektem (wersja strukturalna)
 
 1) Pobranie składowych pojedynczej opinii do niezależnych zmiennych
 2) Zapisanie wszystkich składowych opinii do słownika
 3) Pobranie wszystkich opinii z pojedynczej strony i zapisanie ich na liście w postaci słowników
 4) Pobranie wszystkich opinii o wskazanym produkcie i zapisanie ich do pliku 
+5) Wczytanie opinii o wskazanym produkcie z pliku do obiektu DataFrame
+6) Wyliczenie podstawowych statystyk 
+7) Przedstawienie struktury opinii o produkcie na wykresach
