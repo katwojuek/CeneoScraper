@@ -2,13 +2,27 @@ import json
 import requests
 from bs4 import BeautifulSoup
 
-def extract_element(ancestor, selector, attribute=None):
+def extract_element(ancestor, selector, attribute=None, extract_list=False):
     try:
+        if extract_list:
+            return ", ".join([item.text.strip() for item in ancestor.select(selector)])
         if attribute:
             return ancestor.select(selector).pop(0)[attribute].strip()
-        else:
-            return ancestor.select(selector).pop(0).text.strip()
+        return ancestor.select(selector).pop(0).text.strip()
     except IndexError: return None
+
+selectors = {
+    "author": ["span.user-post__author-name"],
+    "recommendation": ["span.user-post__author-recomendation > em"],
+    "stars": ["span.user-post__score-count"],
+    "content": ["div.user-post__text"],
+    "publish_date": ["span.user-post__published > time:nth-child(1)", "datetime"], 
+    "purchase_date": ["span.user-post__published > time:nth-child(2)", "datetime"],
+    "useful": ["span[id^=votes-yes]"],
+    "useless": ["span[id^=votes-no]"],
+    "pros": ["div.review-feature__title--positives ~ div.review-feature__item", None, True],
+    "cons": ["div.review-feature__title--negatives ~ div.review-feature__item", None, True]
+}
 
 product_id = input("Podaj identyfokator produktu: ")
 url_pre = "https://www.ceneo.pl/"
@@ -23,45 +37,23 @@ while(page_no):
         page_dom = BeautifulSoup(response.text, 'html.parser')
         reviews = page_dom.select("div.js_product-review")
         for review in reviews: 
-            review_id = review["data-entry-id"]
-            author = extract_element(review,"span.user-post__author-name")
-            recommendation = extract_element(review, "span.user-post__author-recomendation > em")
-            stars = extract_element(review, "span.user-post__score-count")
-            content = extract_element(review, "div.user-post__text")
-            publish_date = extract_element(review, "span.user-post__published > time:nth-child(1)", "datetime")
-            purchase_date = extract_element(review, "span.user-post__published > time:nth-child(2)", "datetime")
-            useful = extract_element(review, "span[id^=votes-yes]")
-            useless = extract_element(review, "span[id^=votes-no]")
-            
-            pros = review.select("div.review-feature__title--positives ~ div.review-feature__item")
-            pros = [item.text.strip() for item in pros]
-            pros = ", ".join(pros)
-
-            cons = review.select("div.review-feature__title--negatives ~ div.review-feature__item")
-            cons = [item.text.strip() for item in cons]
-            cons = ", ".join(cons)
-
-            recommendation = True if recommendation == "Polecam" else False if recommendation == "Nie polecam" else None
-            stars = float(stars.split("/").pop(0).replace(",", "."))
-            content = content.replace("\n", " ").replace("  ", " ").strip()
-            publish_date = publish_date.split(" ").pop(0)
-            purchase_date = purchase_date.split(" ").pop(0)
-            useful = int(useful)
-            useless = int(useless)
-
             single_review = {
-                "review_id": review_id,
-                "author": author,
-                "recommendation": recommendation,
-                "stars": stars,
-                "content": content,
-                "publish_date": publish_date, 
-                "purchase_date": purchase_date,
-                "useful": useful,
-                "useless": useless,
-                "pros": pros,
-                "cons": cons
+                key: extract_element(review, *value)
+                    for key, value in selectors.items()
             }
+
+            single_review["review_id"] = review["data-entry-id"]
+            single_review["recommendation"] = True if single_review["recommendation"] == "Polecam" else False if single_review["recommendation"] == "Nie polecam" else None
+            single_review["stars"] = float(single_review["stars"].split("/").pop(0).replace(",", "."))
+            single_review["content"] = single_review["content"].replace("\n", " ").replace("  ", " ").strip()
+            single_review["publish_date"] = single_review["publish_date"].split(" ").pop(0)
+            try:
+                single_review["purchase_date"] = single_review["purchase_date"].split(" ").pop(0)
+            except AttributeError:
+                single_review["purchase_date"] = None
+            single_review["useful"] = int(single_review["useful"])
+            single_review["useless"] = int(single_review["useless"])
+
             all_reviews.append(single_review)
         page_no += 1
     else: page_no = None
